@@ -12,6 +12,14 @@ enum boatStatus {
   containMyBoat //2 - Meu barco está nessa posição
 };
 
+//direções que o barco pode se movimentar
+enum direction {
+  up,
+  down,
+  left,
+  right
+};
+
 //barco
 typedef struct {
   int mullet; //tainha - R$100
@@ -145,16 +153,99 @@ void goToPort(Boat myBoat, int* port) {
   }
 }
 
+void getBestMoviment(Map map, Boat myBoat) {
+  int upValue = 0, downValue = 0, leftValue = 0, rightValue = 0;
+  int bestChoice;
+
+  if (myBoat.x - 1 >= 0) {
+    int t = map.points[myBoat.x-1][myBoat.y].value;
+    if (t >= 32 || t >= 22 || t >= 12)
+      upValue = t;
+    else
+      upValue = -1;
+  }
+
+  if (myBoat.x + 1 < map.height) {
+    int t = map.points[myBoat.x+1][myBoat.y].value;
+    if (t >= 32 || t >= 22 || t >= 12)
+      downValue = t;
+    else
+      downValue = -1;
+  }
+
+  if (myBoat.y - 1 >= 0) {
+    int t = map.points[myBoat.x][myBoat.y-1].value;
+    if (t >= 32 || t >= 22 || t >= 12)
+      leftValue = t;
+    else
+      leftValue = -1;
+  }
+
+  if (myBoat.x + 1 < map.height) {
+    int t = map.points[myBoat.x][myBoat.y+1].value;
+    if (t >= 32 || t >= 22 || t >= 12)
+      rightValue = t;
+    else
+      rightValue = -1;
+  }
+
+  if (upValue != -1 || downValue != -1) {
+    if (upValue >= downValue && upValue != -1)
+      bestChoice = up;
+    else
+      bestChoice = down;
+  }
+
+  if (leftValue != -1 && leftValue > bestChoice)
+    bestChoice = left;
+  
+  if (rightValue != -1 && rightValue > bestChoice)
+    bestChoice = right;
+
+  switch (bestChoice) {
+    case up:
+      printf("UP\n");
+      break;
+
+    case down:
+      printf("DOWN\n");
+      break;
+    
+    case left:
+      printf("LEFT\n");
+      break;
+
+    case right:
+      printf("RIGHT\n");
+      break;
+
+    default:
+      printf("LEFT\n");
+      break;
+  }
+}
+
 //movimenta o barco no mar
 void moveBoat(Map map, Boat myBoat) {
   int totalFish = myBoat.mullet + myBoat.seabass + myBoat.snapper;
+  int myPoint = map.points[myBoat.x][myBoat.y].value;
   
   if (totalFish == 10) {
     int* port = getNearestPort(map, myBoat);
     goToPort(myBoat, port);
   }
+  else if (myPoint != 0 && myPoint != 1) {
+    if (myPoint >= 32)
+      printf("FISH\n");
+    else if (myPoint >= 22)
+      printf("FISH\n");
+    else if (myPoint >= 12)
+      printf("FISH\n");
+    else
+      getBestMoviment(map, myBoat);
+  }
   else {
-    printf("LEFT\n");
+    getBestMoviment(map, myBoat);
   }
 }
 
