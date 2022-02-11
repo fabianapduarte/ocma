@@ -13,11 +13,13 @@ enum boatStatus {
 };
 
 //direções que o barco pode se movimentar
-enum direction {
+enum action {
   up,
   down,
   left,
-  right
+  right,
+  sell,
+  fish
 };
 
 //barco
@@ -110,6 +112,40 @@ double calculateDistance(int x1, int x2, int y1, int y2) {
   return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
 }
 
+//seleciona uma ação
+void setAction(int move) {
+  switch (move) {
+    case up:
+      printf("UP\n");
+      break;
+
+    case down:
+      printf("DOWN\n");
+      break;
+    
+    case left:
+      printf("LEFT\n");
+      break;
+
+    case right:
+      printf("RIGHT\n");
+      break;
+    
+    case sell:
+      printf("SELL\n");
+      break;
+
+    case fish:
+      printf("FISH\n");
+      break;
+
+    //apagar depois
+    default:
+      printf("LEFT\n");
+      break;
+  }
+}
+
 //pegar o porto mais próximo do barco
 int* getNearestPort(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
@@ -135,20 +171,20 @@ int* getNearestPort(Map map, Boat myBoat) {
 
 void goToPort(Boat myBoat, int* port) {
   if (myBoat.y > port[1]) {
-    printf("LEFT\n");
+    setAction(left);
   }
   else if (port[1] > myBoat.y) {
-    printf("RIGHT\n");
+    setAction(right);
   }
   else if (myBoat.y == port[1]) {
     if (myBoat.x > port[0]) {
-      printf("UP\n");
+      setAction(up);
     }
     else if (port[0] > myBoat.x) {
-      printf("DOWN\n");
+      setAction(down);
     }
     else if (port[0] == myBoat.x) {
-      printf("SELL\n");
+      setAction(sell);
     }
   }
 }
@@ -202,27 +238,7 @@ void getBestMoviment(Map map, Boat myBoat) {
   if (rightValue != -1 && rightValue > bestChoice)
     bestChoice = right;
 
-  switch (bestChoice) {
-    case up:
-      printf("UP\n");
-      break;
-
-    case down:
-      printf("DOWN\n");
-      break;
-    
-    case left:
-      printf("LEFT\n");
-      break;
-
-    case right:
-      printf("RIGHT\n");
-      break;
-
-    default:
-      printf("LEFT\n");
-      break;
-  }
+  setAction(bestChoice);
 }
 
 //movimenta o barco no mar
@@ -236,11 +252,11 @@ void moveBoat(Map map, Boat myBoat) {
   }
   else if (myPoint != 0 && myPoint != 1) {
     if (myPoint >= 32)
-      printf("FISH\n");
+      setAction(fish);
     else if (myPoint >= 22)
-      printf("FISH\n");
+      setAction(fish);
     else if (myPoint >= 12)
-      printf("FISH\n");
+      setAction(fish);
     else
       getBestMoviment(map, myBoat);
   }
