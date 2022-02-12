@@ -126,32 +126,35 @@ double calculateDistance(int x1, int x2, int y1, int y2) {
 }
 
 //Seleciona uma ação
-void setAction(int move) {
+char* setAction(int move) {
+  char* command = (char*) calloc(MAX_LINE, sizeof(char));
+
   switch (move) {
     case up:
-      printf("UP\n");
+      strcpy(command, "UP");
       break;
 
     case down:
-      printf("DOWN\n");
+      strcpy(command, "DOWN");
       break;
     
     case left:
-      printf("LEFT\n");
+      strcpy(command, "LEFT");
       break;
 
     case right:
-      printf("RIGHT\n");
+      strcpy(command, "RIGHT");
       break;
     
     case sell:
-      printf("SELL\n");
+      strcpy(command, "SELL");
       break;
 
     case fish:
-      printf("FISH\n");
+      strcpy(command, "FISH");
       break;
   }
+  return command;
 }
 
 //Retorna coordenadas do porto mais próximo ao barco
@@ -178,24 +181,28 @@ int* getTheNearestPort(Map map, Boat myBoat) {
 }
 
 //Movimenta barco em direção ao porto
-void goToPort(Boat myBoat, int* port) {
+char* goToPort(Boat myBoat, int* port) {
+  char* command = (char*) calloc(MAX_LINE, sizeof(char));
+
   if (myBoat.y > port[1]) {
-    setAction(left);
+    strcpy(command, setAction(left));
   }
   else if (port[1] > myBoat.y) {
-    setAction(right);
+    strcpy(command, setAction(right));
   }
   else if (myBoat.y == port[1]) {
     if (myBoat.x > port[0]) {
-      setAction(up);
+      strcpy(command, setAction(up));
     }
     else if (port[0] > myBoat.x) {
-      setAction(down);
+      strcpy(command, setAction(down));
     }
     else if (port[0] == myBoat.x) {
-      setAction(sell);
+      strcpy(command, setAction(sell));
     }
   }
+
+  return command; 
 }
 
 //Verifica se é uma área proibida
@@ -235,9 +242,10 @@ int getHigherValue(int upValue, int downValue, int leftValue, int rightValue) {
 }
 
 //Analisa os pontos ao redor do barco e decide qual o movimento a ser realizado
-void getBestMoviment(Map map, Boat myBoat) {
+char* getBestMoviment(Map map, Boat myBoat) {
   int upValue = -1, downValue = -1, leftValue = -1, rightValue = -1;
   int bestChoice;
+  char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
   if (myBoat.x - 1 >= 0) {
     Point point = map.points[myBoat.x-1][myBoat.y];
@@ -265,31 +273,55 @@ void getBestMoviment(Map map, Boat myBoat) {
 
   bestChoice = getHigherValue(upValue, downValue, leftValue, rightValue);
 
-  setAction(bestChoice);
+  strcpy(command, setAction(bestChoice));
+
+  return command;
 }
 
 //Movimenta o barco no mar
-void moveBoat(Map map, Boat myBoat) {
+char* moveBoat(Map map, Boat myBoat) {
+  char* command = (char*) calloc(MAX_LINE, sizeof(char));
   int myPoint = map.points[myBoat.x][myBoat.y].value;
   
   if (myBoat.stock.total == 10) {
     int* port = getTheNearestPort(map, myBoat);
-    goToPort(myBoat, port);
+    strcpy(command, goToPort(myBoat, port));
   }
   else if (myPoint != 0 && myPoint != 1) {
     if ((myPoint >= 32 && myPoint <= 39) || (myPoint >= 22 && myPoint <= 29) || (myPoint >= 12 && myPoint <= 19))
-      setAction(fish);
+      strcpy(command, setAction(fish));
     else
-      getBestMoviment(map, myBoat);
+      strcpy(command, getBestMoviment(map, myBoat));
   }
   else {
-    getBestMoviment(map, myBoat);
+    strcpy(command, getBestMoviment(map, myBoat));
+  }
+
+  return command;
+}
+
+void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
+  if (strcmp(command, "FISH") == 0) {
+    if (strcmp(line, "NONE") != 0) {
+      myBoat->stock.total++;
+
+      if (strcmp(line, "SEABASS") == 0)
+        myBoat->stock.seabass++;
+      else if (strcmp(line, "SNAPPER") == 0)
+        myBoat->stock.snapper++;
+      else if (strcmp(line, "MULLET") == 0)
+        myBoat->stock.mullet++;
+    }
+  }
+  else if (strcmp(command, "SELL") == 0) {
+    myBoat->cash = atoi(line);
   }
 }
 
 int main() {
   char line[MAX_LINE]; // dados temporários
   char myId[MAX_LINE]; // identificador do bot em questão
+  char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
   setbuf(stdin, NULL); // stdin, stdout e stderr não terão buffers
   setbuf(stdout, NULL); // assim, nada é "guardado temporariamente"
@@ -308,13 +340,16 @@ int main() {
   while (1) {
     map = readData(h, w, &myBoat);
 
-    moveBoat(map, myBoat);
+    strcpy(command, moveBoat(map, myBoat));
+    printf("%s\n", command);
 
     // lê qual foi o resultado da ação (e eventualmente atualiza os dados do bot).
     scanf("%s", line);
+    updateMyBoat(&myBoat, line, command);
   }
 
   free(map.points);
+  free(command);
 
   return 0;
 }
