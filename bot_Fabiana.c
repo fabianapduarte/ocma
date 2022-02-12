@@ -1,18 +1,27 @@
+/*
+ * PROJETO FINAL DE ITP
+ *
+ * Aluna: Fabiana Pereira Duarte
+ * Turma: T02 - 2021.2
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 
 #define MAX_LINE 50
+#define VALUE_MULLET 100
+#define VALUE_SNAPPER 150
+#define VALUE_SEABASS 200
 
-//status possíveis de um barco para um determinado ponto do mapa
+//Status de um barco em um determinado ponto do mapa
 enum boatStatus {
-  noBoat, //0 - Não há barco nessa posição
-  containBoat, //1 - Há um barco nessa posição
-  containMyBoat //2 - Meu barco está nessa posição
+  noBoat,      //Não há barco nessa posição
+  containBoat  //Há um barco nessa posição
 };
 
-//direções que o barco pode se movimentar
+//Ações do barco
 enum action {
   up,
   down,
@@ -22,31 +31,36 @@ enum action {
   fish
 };
 
-//barco
 typedef struct {
-  int mullet; //tainha - R$100
-  int snapper; //cioba - R$150
-  int seabass; //robalo - R$200
-  int cash; //valor total dos peixes vendidos pelo barco
-  char id[MAX_LINE]; //id do barco
+  int mullet;     //Tainha
+  int snapper;    //Cioba
+  int seabass;    //Robalo
+  int total;      //Total de peixes (kg)
+} Stock;
+
+//Barco
+typedef struct {
+  char id[MAX_LINE];  //ID do barco
+  int cash;           //Valor total dos peixes vendidos pelo barco
+  Stock stock;        //Estoque de peixes do barco
   int x;
   int y;
 } Boat;
 
-//ponto do mapa
+//Ponto do mapa
 typedef struct {
-  int value; //valor
-  int hasBoat; //informação de que há ou não barco
+  int value;    //Valor
+  int hasBoat;  //Informação de que há ou não barco no ponto do mapa
 } Point;
 
-//mapa do jogo
+//Mapa do jogo
 typedef struct {
-  Point** points; //composto por pontos
-  int height;
-  int width;
+  Point** points; //Pontos do mapa
+  int height;     //Altura do mapa
+  int width;      //Largura do mapa
 } Map;
 
-// inicializa o mapa e aloca memória para os pontos
+//Inicializa o mapa e aloca memória para os pontos
 Map initMap(int h, int w) {
   Map map;
 
@@ -61,20 +75,21 @@ Map initMap(int h, int w) {
   return map;
 }
 
-// inicializa o meu barco
+//Inicializa o meu barco
 Boat initBoat(char myId[MAX_LINE]) {
   Boat myBoat;
 
   strcpy(myBoat.id, myId);
-  myBoat.mullet = 0;
-  myBoat.seabass = 0;
-  myBoat.snapper = 0;
+  myBoat.stock.mullet = 0;
+  myBoat.stock.seabass = 0;
+  myBoat.stock.snapper = 0;
+  myBoat.stock.total = 0;
   myBoat.cash = 0;
 
   return myBoat;
 }
 
-// lê os dados do jogo e atualiza os dados do bot
+//Lê os dados do jogo e atualiza os dados do bot
 Map readData(int h, int w, Boat* myBoat) {
   char idBot[MAX_LINE];
   int pointValue, numBots, x, y;
@@ -94,25 +109,23 @@ Map readData(int h, int w, Boat* myBoat) {
   for (int i = 0; i < numBots; i++) {
     scanf("%s %i %i", idBot, &x, &y); // lê o id dos bots e suas posições
 
+    map.points[x][y].hasBoat = containBoat;
+
     if (strcmp(idBot, myBoat->id) == 0) {
-      map.points[x][y].hasBoat = containMyBoat;
       myBoat->x = x;
       myBoat->y = y;
-    }
-    else {
-      map.points[x][y].hasBoat = containBoat;
     }
   }
 
   return map;
 }
 
-//calcula distância entre dois pontos do mapa, dadas as suas coordenadas
+//Calcula distância entre dois pontos do mapa, dadas as suas coordenadas
 double calculateDistance(int x1, int x2, int y1, int y2) {
   return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
 }
 
-//seleciona uma ação
+//Seleciona uma ação
 void setAction(int move) {
   switch (move) {
     case up:
@@ -138,16 +151,11 @@ void setAction(int move) {
     case fish:
       printf("FISH\n");
       break;
-
-    //apagar depois
-    default:
-      printf("LEFT\n");
-      break;
   }
 }
 
-//pegar o porto mais próximo do barco
-int* getNearestPort(Map map, Boat myBoat) {
+//Retorna coordenadas do porto mais próximo ao barco
+int* getTheNearestPort(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
   double minDistance, distance;
 
@@ -169,6 +177,7 @@ int* getNearestPort(Map map, Boat myBoat) {
   return portCoords;
 }
 
+//Movimenta barco em direção ao porto
 void goToPort(Boat myBoat, int* port) {
   if (myBoat.y > port[1]) {
     setAction(left);
@@ -189,73 +198,86 @@ void goToPort(Boat myBoat, int* port) {
   }
 }
 
+//Verifica se é uma área proibida
+int isForbiddenPoint(Point point) {
+  if (
+    point.value == 10 ||
+    point.value == 11 ||
+    point.value == 20 ||
+    point.value == 21 ||
+    point.value == 30 || 
+    point.value == 31 ||
+    point.hasBoat == containBoat
+  ) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+//Compara os valores dos pontos acima, abaixo, à esquerda e à direita e retorna o maior entre eles
+int getHigherValue(int upValue, int downValue, int leftValue, int rightValue) {
+  int higher;
+
+  if (upValue >= downValue)
+    higher = up;
+  else
+    higher = down;
+
+  if (leftValue > higher)
+    higher = left;
+  
+  if (rightValue > higher)
+    higher = right;
+
+  return higher;
+}
+
+//Analisa os pontos ao redor do barco e decide qual o movimento a ser realizado
 void getBestMoviment(Map map, Boat myBoat) {
-  int upValue = 0, downValue = 0, leftValue = 0, rightValue = 0;
+  int upValue = -1, downValue = -1, leftValue = -1, rightValue = -1;
   int bestChoice;
 
   if (myBoat.x - 1 >= 0) {
-    int t = map.points[myBoat.x-1][myBoat.y].value;
-    if (t >= 32 || t >= 22 || t >= 12)
-      upValue = t;
-    else
-      upValue = -1;
+    Point point = map.points[myBoat.x-1][myBoat.y];
+    if ((!isForbiddenPoint(point)))
+      upValue = point.value;
   }
 
   if (myBoat.x + 1 < map.height) {
-    int t = map.points[myBoat.x+1][myBoat.y].value;
-    if (t >= 32 || t >= 22 || t >= 12)
-      downValue = t;
-    else
-      downValue = -1;
+    Point point = map.points[myBoat.x+1][myBoat.y];
+    if ((!isForbiddenPoint(point)))
+      downValue = point.value;
   }
 
   if (myBoat.y - 1 >= 0) {
-    int t = map.points[myBoat.x][myBoat.y-1].value;
-    if (t >= 32 || t >= 22 || t >= 12)
-      leftValue = t;
-    else
-      leftValue = -1;
+    Point point = map.points[myBoat.x][myBoat.y-1];
+    if ((!isForbiddenPoint(point)))
+      leftValue = point.value;
   }
 
   if (myBoat.x + 1 < map.height) {
-    int t = map.points[myBoat.x][myBoat.y+1].value;
-    if (t >= 32 || t >= 22 || t >= 12)
-      rightValue = t;
-    else
-      rightValue = -1;
+    Point point = map.points[myBoat.x][myBoat.y+1];
+    if ((!isForbiddenPoint(point)))
+      rightValue = point.value;
   }
 
-  if (upValue != -1 || downValue != -1) {
-    if (upValue >= downValue && upValue != -1)
-      bestChoice = up;
-    else
-      bestChoice = down;
-  }
-
-  if (leftValue != -1 && leftValue > bestChoice)
-    bestChoice = left;
-  
-  if (rightValue != -1 && rightValue > bestChoice)
-    bestChoice = right;
+  bestChoice = getHigherValue(upValue, downValue, leftValue, rightValue);
 
   setAction(bestChoice);
 }
 
-//movimenta o barco no mar
+//Movimenta o barco no mar
 void moveBoat(Map map, Boat myBoat) {
-  int totalFish = myBoat.mullet + myBoat.seabass + myBoat.snapper;
   int myPoint = map.points[myBoat.x][myBoat.y].value;
   
-  if (totalFish == 10) {
-    int* port = getNearestPort(map, myBoat);
+  if (myBoat.stock.total == 10) {
+    int* port = getTheNearestPort(map, myBoat);
     goToPort(myBoat, port);
   }
   else if (myPoint != 0 && myPoint != 1) {
-    if (myPoint >= 32)
-      setAction(fish);
-    else if (myPoint >= 22)
-      setAction(fish);
-    else if (myPoint >= 12)
+    if ((myPoint >= 32 && myPoint <= 39) || (myPoint >= 22 && myPoint <= 29) || (myPoint >= 12 && myPoint <= 19))
       setAction(fish);
     else
       getBestMoviment(map, myBoat);
