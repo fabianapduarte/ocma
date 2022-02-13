@@ -247,30 +247,36 @@ char* getBestMoviment(Map map, Boat myBoat) {
   int bestChoice;
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
+  //Verifica se o barco está nos limites da área de pesca
+  //acima
   if (myBoat.x - 1 >= 0) {
     Point point = map.points[myBoat.x-1][myBoat.y];
     if ((!isForbiddenPoint(point)))
       upValue = point.value;
   }
 
+  //abaixo
   if (myBoat.x + 1 < map.height) {
     Point point = map.points[myBoat.x+1][myBoat.y];
     if ((!isForbiddenPoint(point)))
       downValue = point.value;
   }
 
+  //à esquerda
   if (myBoat.y - 1 >= 0) {
     Point point = map.points[myBoat.x][myBoat.y-1];
     if ((!isForbiddenPoint(point)))
       leftValue = point.value;
   }
 
+  //à direita
   if (myBoat.x + 1 < map.height) {
     Point point = map.points[myBoat.x][myBoat.y+1];
     if ((!isForbiddenPoint(point)))
       rightValue = point.value;
   }
 
+  //retorna qual ponto é mais vantajoso para pesca
   bestChoice = getHigherValue(upValue, downValue, leftValue, rightValue);
 
   strcpy(command, setAction(bestChoice));
@@ -281,18 +287,23 @@ char* getBestMoviment(Map map, Boat myBoat) {
 //Movimenta o barco no mar
 char* moveBoat(Map map, Boat myBoat) {
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
-  int myPoint = map.points[myBoat.x][myBoat.y].value;
+  Point myPoint = map.points[myBoat.x][myBoat.y];
   
+  //verifica se o estoque está cheio
   if (myBoat.stock.total == 10) {
+    //se sim, procura porto mais próximo para venda dos peixes
     int* port = getTheNearestPort(map, myBoat);
     strcpy(command, goToPort(myBoat, port));
   }
-  else if (myPoint != 0 && myPoint != 1) {
-    if ((myPoint >= 32 && myPoint <= 39) || (myPoint >= 22 && myPoint <= 29) || (myPoint >= 12 && myPoint <= 19))
+  //verifica se o ponto é bom para pesca
+  else if (myPoint.value != 0 && myPoint.value != 1) {
+    if (!isForbiddenPoint(myPoint))
       strcpy(command, setAction(fish));
     else
+    //se não, analisa no entorno qual o melhor movimento a ser feito
       strcpy(command, getBestMoviment(map, myBoat));
   }
+  //se não, analisa no entorno qual o melhor movimento a ser feito
   else {
     strcpy(command, getBestMoviment(map, myBoat));
   }
@@ -300,6 +311,7 @@ char* moveBoat(Map map, Boat myBoat) {
   return command;
 }
 
+//Atualiza valores do barco após venda ou pesca dos peixes
 void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
   if (strcmp(command, "FISH") == 0) {
     if (strcmp(line, "NONE") != 0) {
@@ -319,7 +331,7 @@ void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
 }
 
 int main() {
-  char line[MAX_LINE]; // dados temporários
+  char line[MAX_LINE];
   char myId[MAX_LINE]; // identificador do bot em questão
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
@@ -330,7 +342,7 @@ int main() {
   // === INÍCIO DA PARTIDA ===
   int h, w;
   scanf("AREA %i %i", &h, &w); // dimensão da área de pesca: altura (h) x largura (w)
-  scanf(" ID %s", myId); // por fim, sabe qual seu próprio id
+  scanf(" ID %s", myId); // id do barco
 
   Boat myBoat = initBoat(myId);
 
@@ -340,6 +352,7 @@ int main() {
   while (1) {
     map = readData(h, w, &myBoat);
 
+    // movimenta barco
     strcpy(command, moveBoat(map, myBoat));
     printf("%s\n", command);
 
