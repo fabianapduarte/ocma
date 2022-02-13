@@ -11,9 +11,6 @@
 #include <math.h>
 
 #define MAX_LINE 50
-#define VALUE_MULLET 100
-#define VALUE_SNAPPER 150
-#define VALUE_SEABASS 200
 
 //Status de um barco em um determinado ponto do mapa
 enum boatStatus {
@@ -31,18 +28,10 @@ enum action {
   fish
 };
 
-typedef struct {
-  int mullet;     //Tainha
-  int snapper;    //Cioba
-  int seabass;    //Robalo
-  int total;      //Total de peixes (kg)
-} Stock;
-
 //Barco
 typedef struct {
   char id[MAX_LINE];  //ID do barco
-  int cash;           //Valor total dos peixes vendidos pelo barco
-  Stock stock;        //Estoque de peixes do barco
+  int stock;          //Estoque de peixes do barco
   int x;
   int y;
 } Boat;
@@ -80,11 +69,7 @@ Boat initBoat(char myId[MAX_LINE]) {
   Boat myBoat;
 
   strcpy(myBoat.id, myId);
-  myBoat.stock.mullet = 0;
-  myBoat.stock.seabass = 0;
-  myBoat.stock.snapper = 0;
-  myBoat.stock.total = 0;
-  myBoat.cash = 0;
+  myBoat.stock = 0;
 
   return myBoat;
 }
@@ -213,8 +198,7 @@ int isForbiddenPoint(Point point) {
     point.value == 20 ||
     point.value == 21 ||
     point.value == 30 || 
-    point.value == 31 ||
-    point.hasBoat == containBoat
+    point.value == 31
   ) {
     return 1;
   }
@@ -249,30 +233,30 @@ char* getBestMoviment(Map map, Boat myBoat) {
 
   //Verifica se o barco está nos limites da área de pesca
   //acima
-  if (myBoat.x - 1 >= 0) {
+  if (myBoat.x - 1 > 0) {
     Point point = map.points[myBoat.x-1][myBoat.y];
-    if ((!isForbiddenPoint(point)))
+    if (isForbiddenPoint(point) == 0 && point.hasBoat == noBoat)
       upValue = point.value;
   }
 
   //abaixo
   if (myBoat.x + 1 < map.height) {
     Point point = map.points[myBoat.x+1][myBoat.y];
-    if ((!isForbiddenPoint(point)))
+    if (isForbiddenPoint(point) == 0 && point.hasBoat == noBoat)
       downValue = point.value;
   }
 
   //à esquerda
-  if (myBoat.y - 1 >= 0) {
+  if (myBoat.y - 1 > 0) {
     Point point = map.points[myBoat.x][myBoat.y-1];
-    if ((!isForbiddenPoint(point)))
+    if (isForbiddenPoint(point) == 0 && point.hasBoat == noBoat)
       leftValue = point.value;
   }
 
   //à direita
   if (myBoat.x + 1 < map.height) {
     Point point = map.points[myBoat.x][myBoat.y+1];
-    if ((!isForbiddenPoint(point)))
+    if (isForbiddenPoint(point) == 0 && point.hasBoat == noBoat)
       rightValue = point.value;
   }
 
@@ -290,14 +274,14 @@ char* moveBoat(Map map, Boat myBoat) {
   Point myPoint = map.points[myBoat.x][myBoat.y];
   
   //verifica se o estoque está cheio
-  if (myBoat.stock.total == 10) {
+  if (myBoat.stock == 10) {
     //se sim, procura porto mais próximo para venda dos peixes
     int* port = getTheNearestPort(map, myBoat);
     strcpy(command, goToPort(myBoat, port));
   }
   //verifica se o ponto é bom para pesca
   else if (myPoint.value != 0 && myPoint.value != 1) {
-    if (!isForbiddenPoint(myPoint))
+    if (isForbiddenPoint(myPoint) == 0)
       strcpy(command, setAction(fish));
     else
     //se não, analisa no entorno qual o melhor movimento a ser feito
@@ -315,18 +299,11 @@ char* moveBoat(Map map, Boat myBoat) {
 void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
   if (strcmp(command, "FISH") == 0) {
     if (strcmp(line, "NONE") != 0) {
-      myBoat->stock.total++;
-
-      if (strcmp(line, "SEABASS") == 0)
-        myBoat->stock.seabass++;
-      else if (strcmp(line, "SNAPPER") == 0)
-        myBoat->stock.snapper++;
-      else if (strcmp(line, "MULLET") == 0)
-        myBoat->stock.mullet++;
+      myBoat->stock++;
     }
   }
   else if (strcmp(command, "SELL") == 0) {
-    myBoat->cash = atoi(line);
+    myBoat->stock = 0;
   }
 }
 
