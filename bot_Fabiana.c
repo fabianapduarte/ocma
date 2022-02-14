@@ -147,7 +147,7 @@ int* getTheNearestPort(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
   double minDistance, distance;
 
-  minDistance = calculateDistance(myBoat.row, (map.height-1), myBoat.column, (map.width-1));
+  minDistance = calculateDistance(0, (map.height-1), 0, (map.width-1));
 
   //percorre o mapa e procura o porto mais próximo, ou seja, com a menor distância até o barco
   for (int i = 0; i < map.height; i++) {
@@ -188,7 +188,7 @@ int* getTheNearestFishableArea(Map map, Boat myBoat) {
   double minDistance, distance;
 
   //Calcula o máximo valor possível para servir de comparação posteriormente ao percorrer o mapa
-  minDistance = calculateDistance(myBoat.row, (map.height-1), myBoat.column, (map.width-1));
+  minDistance = calculateDistance(0, (map.height-1), 0, (map.width-1));
 
   //percorre o mapa e procura o ponto de pesca válido mais próximo, ou seja, com a menor distância até o barco
   for (int i = 0; i < map.height; i++) {
