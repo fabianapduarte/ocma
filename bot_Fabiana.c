@@ -14,11 +14,11 @@
 
 //Status de um barco em um determinado ponto do mapa
 enum boatStatus {
-  noBoat,     //Não há barco nessa posição
+  noBoat,      //Não há barco nessa posição
   containBoat  //Há um barco nessa posição
 };
 
-//Ações do barco
+//Ações que o barco pode realizar
 enum action {
   up,
   down,
@@ -44,21 +44,21 @@ typedef struct {
 
 //Mapa do jogo
 typedef struct {
-  Point** points; //Pontos do mapa
-  int height;     //Altura do mapa
+  Point** points; //Matriz com pontos do mapa
+  int heigth;     //Altura do mapa
   int width;      //Largura do mapa
 } Map;
 
 //Inicializa o mapa e aloca memória para os pontos
-Map initMap(int h, int w) {
+Map initMap(int heigth, int width) {
   Map map;
 
-  map.height = h;
-  map.width = w;
-  map.points = (Point**) calloc(h, sizeof(Point*));
+  map.heigth = heigth;
+  map.width = width;
+  map.points = (Point**) calloc(heigth, sizeof(Point*));
 
-  for (int i = 0; i < h; i++) {
-    map.points[i] = (Point*) calloc(w, sizeof(Point));
+  for (int i = 0; i < heigth; i++) {
+    map.points[i] = (Point*) calloc(width, sizeof(Point));
   }
 
   return map;
@@ -75,14 +75,14 @@ Boat initBoat(char myId[MAX_LINE]) {
 }
 
 //Lê os dados do jogo e atualiza os dados do bot
-Map readData(int h, int w, Boat* myBoat) {
+Map readData(int heigth, int width, Boat* myBoat) {
   char idBot[MAX_LINE];
   int pointValue, numBots, row, column;
 
-  Map map = initMap(h, w);
+  Map map = initMap(heigth, width);
 
-  for (int i = 0; i < h; i++) {
-    for (int j = 0; j < w; j++) {
+  for (int i = 0; i < heigth; i++) {
+    for (int j = 0; j < width; j++) {
       scanf("%i", &pointValue);
       map.points[i][j].value = pointValue;
       map.points[i][j].hasBoat = 0;
@@ -147,10 +147,11 @@ int* getTheNearestPort(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
   double minDistance, distance;
 
-  minDistance = calculateDistance(0, (map.height-1), 0, (map.width-1));
+  //Calcula o máximo valor possível para servir de comparação posteriormente ao percorrer o mapa
+  minDistance = calculateDistance(0, (map.heigth-1), 0, (map.width-1));
 
   //percorre o mapa e procura o porto mais próximo, ou seja, com a menor distância até o barco
-  for (int i = 0; i < map.height; i++) {
+  for (int i = 0; i < map.heigth; i++) {
     for (int j = 0; j < map.width; j++) {
       if (map.points[i][j].value == 1 && map.points[i][j].hasBoat == noBoat) {
         distance = calculateDistance(myBoat.row, i, myBoat.column, j);
@@ -188,10 +189,10 @@ int* getTheNearestFishableArea(Map map, Boat myBoat) {
   double minDistance, distance;
 
   //Calcula o máximo valor possível para servir de comparação posteriormente ao percorrer o mapa
-  minDistance = calculateDistance(0, (map.height-1), 0, (map.width-1));
+  minDistance = calculateDistance(0, (map.heigth-1), 0, (map.width-1));
 
   //percorre o mapa e procura o ponto de pesca válido mais próximo, ou seja, com a menor distância até o barco
-  for (int i = 0; i < map.height; i++) {
+  for (int i = 0; i < map.heigth; i++) {
     for (int j = 0; j < map.width; j++) {
       if (isFishingArea(map.points[i][j].value) == 1 && map.points[i][j].hasBoat == noBoat) {
         distance = calculateDistance(myBoat.row, i, myBoat.column, j);
@@ -212,16 +213,19 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
   //verifica se o movimento não vai para fora da área de pesca e se não há barco no destino
-  //se houver, verifica outras possibilidades de movimento
+  //se não puder, verifica outras possibilidades de movimento
 
+  // Verifica se é possível movimento para esquerda
   if (myBoat.column > coords[1]) {
     if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
+      //se sim, movimento para esquerda
       strcpy(command, setAction(left));
     }
+    //se não, verifica outras possibilidades de movimento
     else if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
       strcpy(command, setAction(up));
     }
-    else if (myBoat.row + 1 <= map.height - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
       strcpy(command, setAction(down));
     }
     else if (myBoat.column + 1 <= map.width - 1) {
@@ -229,14 +233,17 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
     }
   }
   
+  // Verifica se é possível movimento para direita
   if (coords[1] > myBoat.column) {
     if (myBoat.column + 1 <= map.width - 1 && map.points[myBoat.row][myBoat.column+1].hasBoat == noBoat) {
+      //se sim, movimenta para direita
       strcpy(command, setAction(right));
     }
+    //se não, verifica outras possibilidades de movimento
     else if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
       strcpy(command, setAction(up));
     }
-    else if (myBoat.row + 1 <= map.height - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
       strcpy(command, setAction(down));
     }
     else if (myBoat.column - 1 >= 0) {
@@ -244,24 +251,30 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
     }
   }
 
+  // Verifica se é possível movimento para cima
   if (myBoat.row > coords[0]) {
     if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
+      //se sim, movimenta para cima
       strcpy(command, setAction(up));
     }
+    //se não, verifica outras possibilidades de movimento
     else if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
       strcpy(command, setAction(left));
     }
     else if (myBoat.column + 1 <= map.width - 1 && map.points[myBoat.row][myBoat.column+1].hasBoat == noBoat) {
       strcpy(command, setAction(right));
     }
-    else if (myBoat.row + 1 <= map.height - 1) {
+    else if (myBoat.row + 1 <= map.heigth - 1) {
       strcpy(command, setAction(down));
     }
   }
+  // Verifica se é possível movimento para baixo
   else if (coords[0] > myBoat.row) {
-    if (myBoat.row + 1 <= map.height - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+      //se sim, movimento para baixo
       strcpy(command, setAction(down));
     }
+    //se não, verifica outras possibilidades de movimento
     else if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
       strcpy(command, setAction(left));
     }
@@ -310,7 +323,7 @@ char* getBestMoviment(Map map, Boat myBoat) {
   }
 
   //abaixo
-  if (myBoat.row + 1 <= map.height - 1) {
+  if (myBoat.row + 1 <= map.heigth - 1) {
     Point point = map.points[myBoat.row+1][myBoat.column];
     if (isFishingArea(point.value) == 1 && point.hasBoat == noBoat)
       downValue = point.value;
@@ -377,9 +390,9 @@ char* moveBoat(Map map, Boat myBoat) {
 }
 
 //Atualiza valores do barco após venda ou pesca dos peixes
-void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
+void updateMyBoat(Boat* myBoat, char result[MAX_LINE], char command[MAX_LINE]) {
   if (strcmp(command, "FISH") == 0) {
-    if (strcmp(line, "NONE") != 0) {
+    if (strcmp(result, "NONE") != 0) {
       //se a ação foi de pesca, aumenta o estoque
       myBoat->stock++;
     }
@@ -391,7 +404,7 @@ void updateMyBoat(Boat* myBoat, char line[MAX_LINE], char command[MAX_LINE]) {
 }
 
 int main() {
-  char line[MAX_LINE];
+  char result[MAX_LINE];
   char myId[MAX_LINE]; // identificador do bot em questão
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
 
@@ -400,8 +413,8 @@ int main() {
   setbuf(stderr, NULL);
 
   // === INÍCIO DA PARTIDA ===
-  int h, w;
-  scanf("AREA %i %i", &h, &w); // dimensão da área de pesca: altura (h) x largura (w)
+  int heigth, width;
+  scanf("AREA %i %i", &heigth, &width); // dimensão da área de pesca: altura (heigth) x largura (width)
   scanf(" ID %s", myId); // id do meu barco
 
   Boat myBoat = initBoat(myId);
@@ -410,15 +423,15 @@ int main() {
   Map map;
   // fica num laço infinito, pois quem vai terminar seu programa é o SIMULADOR.
   while (1) {
-    map = readData(h, w, &myBoat);
+    map = readData(heigth, width, &myBoat);
 
     // movimenta barco
     strcpy(command, moveBoat(map, myBoat));
     printf("%s\n", command);
 
     // lê qual foi o resultado da ação (e eventualmente atualiza os dados do bot).
-    scanf("%s", line);
-    updateMyBoat(&myBoat, line, command);
+    scanf("%s", result);
+    updateMyBoat(&myBoat, result, command);
   }
 
   free(map.points);
