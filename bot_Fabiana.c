@@ -142,10 +142,41 @@ char* setAction(int move) {
   return command;
 }
 
+//Verifica se é uma área proibida quando uma área de pesca tem poucos peixes
+int isForbiddenPoint(Point point) {
+  if (
+    point.value == 10 || point.value == 11 || //tainha
+    point.value == 20 || point.value == 21 || //cioba
+    point.value == 30 || point.value == 31    //robalo
+  ) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+//Verifica se um ponto do mapa é válido para pesca
+int isFishingArea(Point point) {
+  if (point.value != 0 && point.value != 1 && isForbiddenPoint(point) == 0)
+    return 1;
+  else
+    return 0;
+}
+
+//Verifica se um ponto de pesca está ocupado por um barco
+int hasBoatOnThePoint(Point point) {
+  if (point.hasBoat == containBoat)
+    return 1;
+  else if (point.hasBoat == noBoat)
+    return 0;
+}
+
 //Retorna coordenadas do porto mais próximo ao barco
 int* getTheNearestPort(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
   double minDistance, distance;
+  Point point;
 
   //Calcula o máximo valor possível para servir de comparação posteriormente ao percorrer o mapa
   minDistance = calculateDistance(0, (map.heigth-1), 0, (map.width-1));
@@ -153,7 +184,8 @@ int* getTheNearestPort(Map map, Boat myBoat) {
   //percorre o mapa e procura o porto mais próximo, ou seja, com a menor distância até o barco
   for (int i = 0; i < map.heigth; i++) {
     for (int j = 0; j < map.width; j++) {
-      if (map.points[i][j].value == 1 && map.points[i][j].hasBoat == noBoat) {
+      point = map.points[i][j];
+      if (map.points[i][j].value == 1 && hasBoatOnThePoint(point) == 0) {
         distance = calculateDistance(myBoat.row, i, myBoat.column, j);
         if (distance <= minDistance) {
           minDistance = distance;
@@ -167,26 +199,11 @@ int* getTheNearestPort(Map map, Boat myBoat) {
   return portCoords;
 }
 
-//Verifica se é uma área proibida
-int isForbiddenPoint(int value) {
-  if (value == 10 || value == 11 || value == 20 || value == 21 || value == 30 ||  value == 31)
-    return 1;
-  else
-    return 0;
-}
-
-//Verifica se um ponto do mapa é válido para pesca
-int isFishingArea(int value) {
-  if (value != 0 && value != 1 && isForbiddenPoint(value) == 0)
-    return 1;
-  else
-    return 0;
-}
-
 //Retorna coordenadas do ponto de pesca válido mais próximo ao barco
 int* getTheNearestFishableArea(Map map, Boat myBoat) {
   int* portCoords = calloc(2, sizeof(int));
   double minDistance, distance;
+  Point point;
 
   //Calcula o máximo valor possível para servir de comparação posteriormente ao percorrer o mapa
   minDistance = calculateDistance(0, (map.heigth-1), 0, (map.width-1));
@@ -194,7 +211,8 @@ int* getTheNearestFishableArea(Map map, Boat myBoat) {
   //percorre o mapa e procura o ponto de pesca válido mais próximo, ou seja, com a menor distância até o barco
   for (int i = 0; i < map.heigth; i++) {
     for (int j = 0; j < map.width; j++) {
-      if (isFishingArea(map.points[i][j].value) == 1 && map.points[i][j].hasBoat == noBoat) {
+      point = map.points[i][j];
+      if (isFishingArea(point) == 1 && hasBoatOnThePoint(point) == 0) {
         distance = calculateDistance(myBoat.row, i, myBoat.column, j);
         if (distance < minDistance) {
           minDistance = distance;
@@ -217,15 +235,15 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
 
   // Verifica se é possível movimento para esquerda
   if (myBoat.column > coords[1]) {
-    if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
+    if (myBoat.column - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column-1]) == 0) {
       //se sim, movimento para esquerda
       strcpy(command, setAction(left));
     }
     //se não, verifica outras possibilidades de movimento
-    else if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row-1][myBoat.column]) == 0) {
       strcpy(command, setAction(up));
     }
-    else if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row + 1 <= map.heigth - 1 && hasBoatOnThePoint(map.points[myBoat.row+1][myBoat.column]) == 0) {
       strcpy(command, setAction(down));
     }
     else if (myBoat.column + 1 <= map.width - 1) {
@@ -235,15 +253,15 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
   
   // Verifica se é possível movimento para direita
   if (coords[1] > myBoat.column) {
-    if (myBoat.column + 1 <= map.width - 1 && map.points[myBoat.row][myBoat.column+1].hasBoat == noBoat) {
+    if (myBoat.column + 1 <= map.width - 1 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column+1]) == 0) {
       //se sim, movimenta para direita
       strcpy(command, setAction(right));
     }
     //se não, verifica outras possibilidades de movimento
-    else if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row-1][myBoat.column]) == 0) {
       strcpy(command, setAction(up));
     }
-    else if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    else if (myBoat.row + 1 <= map.heigth - 1 && hasBoatOnThePoint(map.points[myBoat.row+1][myBoat.column]) == 0) {
       strcpy(command, setAction(down));
     }
     else if (myBoat.column - 1 >= 0) {
@@ -253,15 +271,15 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
 
   // Verifica se é possível movimento para cima
   if (myBoat.row > coords[0]) {
-    if (myBoat.row - 1 >= 0 && map.points[myBoat.row-1][myBoat.column].hasBoat == noBoat) {
+    if (myBoat.row - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row-1][myBoat.column]) == 0) {
       //se sim, movimenta para cima
       strcpy(command, setAction(up));
     }
     //se não, verifica outras possibilidades de movimento
-    else if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
+    else if (myBoat.column - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column-1]) == 0) {
       strcpy(command, setAction(left));
     }
-    else if (myBoat.column + 1 <= map.width - 1 && map.points[myBoat.row][myBoat.column+1].hasBoat == noBoat) {
+    else if (myBoat.column + 1 <= map.width - 1 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column+1]) == 0) {
       strcpy(command, setAction(right));
     }
     else if (myBoat.row + 1 <= map.heigth - 1) {
@@ -270,15 +288,15 @@ char* goToPosition(Map map, Boat myBoat, int* coords) {
   }
   // Verifica se é possível movimento para baixo
   else if (coords[0] > myBoat.row) {
-    if (myBoat.row + 1 <= map.heigth - 1 && map.points[myBoat.row+1][myBoat.column].hasBoat == noBoat) {
+    if (myBoat.row + 1 <= map.heigth - 1 && hasBoatOnThePoint(map.points[myBoat.row+1][myBoat.column]) == 0) {
       //se sim, movimento para baixo
       strcpy(command, setAction(down));
     }
     //se não, verifica outras possibilidades de movimento
-    else if (myBoat.column - 1 >= 0 && map.points[myBoat.row][myBoat.column-1].hasBoat == noBoat) {
+    else if (myBoat.column - 1 >= 0 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column-1]) == 0) {
       strcpy(command, setAction(left));
     }
-    else if (myBoat.column + 1 <= map.width - 1 && map.points[myBoat.row][myBoat.column+1].hasBoat == noBoat) {
+    else if (myBoat.column + 1 <= map.width - 1 && hasBoatOnThePoint(map.points[myBoat.row][myBoat.column+1]) == 0) {
       strcpy(command, setAction(right));
     }
     else if (myBoat.row - 1 >= 0) {
@@ -318,28 +336,28 @@ char* getBestMoviment(Map map, Boat myBoat) {
   //acima
   if (myBoat.row - 1 >= 0) {
     Point point = map.points[myBoat.row-1][myBoat.column];
-    if (isFishingArea(point.value) == 1 && point.hasBoat == noBoat)
+    if (isFishingArea(point) == 1 && hasBoatOnThePoint(point) == 0)
       upValue = point.value;
   }
 
   //abaixo
   if (myBoat.row + 1 <= map.heigth - 1) {
     Point point = map.points[myBoat.row+1][myBoat.column];
-    if (isFishingArea(point.value) == 1 && point.hasBoat == noBoat)
+    if (isFishingArea(point) == 1 && hasBoatOnThePoint(point) == 0)
       downValue = point.value;
   }
 
   //à esquerda
   if (myBoat.column - 1 >= 0) {
     Point point = map.points[myBoat.row][myBoat.column-1];
-    if (isFishingArea(point.value) == 1 && point.hasBoat == noBoat)
+    if (isFishingArea(point) == 1 && hasBoatOnThePoint(point) == 0)
       leftValue = point.value;
   }
 
   //à direita
   if (myBoat.column + 1 <= map.width - 1) {
     Point point = map.points[myBoat.row][myBoat.column+1];
-    if (isFishingArea(point.value) == 1 && point.hasBoat == noBoat)
+    if (isFishingArea(point) == 1 && hasBoatOnThePoint(point) == 0)
       rightValue = point.value;
   }
 
@@ -362,12 +380,12 @@ char* getBestMoviment(Map map, Boat myBoat) {
 //Movimenta o barco no mar
 char* moveBoat(Map map, Boat myBoat) {
   char* command = (char*) calloc(MAX_LINE, sizeof(char));
-  int myPoint = map.points[myBoat.row][myBoat.column].value;
+  Point myPoint = map.points[myBoat.row][myBoat.column];
   
   //verifica se o estoque está cheio
   if (myBoat.stock == 10) {
     //verifica se está no porto
-    if (myPoint == 1)
+    if (myPoint.value == 1)
       //se sim, vende os peixes
       strcpy(command, setAction(sell));
     else {
